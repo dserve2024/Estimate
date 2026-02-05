@@ -13,7 +13,7 @@
       padding-bottom: 150px;
     }
 
-    /* ═══ LOADING ═══ */
+    /* ═══ LOADING SCREEN ═══ */
     .loading-screen {
       position: fixed; inset: 0; z-index: 200;
       background: linear-gradient(135deg, #6c5ce7, #a29bfe);
@@ -30,10 +30,9 @@
     .loading-text { font-size: 16px; font-weight: 600; opacity: 0.9; }
     .loading-sub { font-size: 12px; opacity: 0.5; margin-top: 6px; }
 
-    /* ═══ ERROR ═══ */
+    /* ═══ ERROR SCREEN ═══ */
     .error-screen {
-      position: fixed; inset: 0; z-index: 200;
-      background: #f0f2f5;
+      position: fixed; inset: 0; z-index: 200; background: #f0f2f5;
       display: none; flex-direction: column; align-items: center; justify-content: center;
       padding: 24px; text-align: center;
     }
@@ -46,6 +45,24 @@
       background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff;
       font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
     }
+
+    /* ═══ SENDING OVERLAY ═══ */
+    .sending-overlay {
+      position: fixed; inset: 0; z-index: 150;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .sending-overlay.show { display: flex; }
+    .sending-box {
+      background: #fff; border-radius: 16px; padding: 32px 40px;
+      text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .sending-box .sending-spinner {
+      width: 48px; height: 48px; border: 4px solid rgba(108,92,231,0.2);
+      border-top-color: #6c5ce7; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+    }
+    .sending-box p { font-size: 15px; font-weight: 600; color: #555; }
 
     /* ═══ HEADER ═══ */
     .header {
@@ -173,20 +190,6 @@
     .success-row .amt { font-weight: 700; color: #1DB446; }
     .success-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e0e0e0; }
     .btn-done { width: 100%; margin-top: 20px; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #1DB446, #0d9e3a); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(29,180,70,0.3); font-family: inherit; }
-
-    /* ═══ SENDING OVERLAY ═══ */
-    .sending-overlay {
-      position: fixed; inset: 0; z-index: 150;
-      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center;
-    }
-    .sending-overlay.show { display: flex; }
-    .sending-box {
-      background: #fff; border-radius: 16px; padding: 32px 40px;
-      text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    }
-    .sending-box .loading-spinner { margin: 0 auto 12px; border-color: rgba(108,92,231,0.2); border-top-color: #6c5ce7; }
-    .sending-box p { font-size: 15px; font-weight: 600; color: #555; }
   </style>
 </head>
 <body>
@@ -209,7 +212,7 @@
   <!-- ═══ SENDING OVERLAY ═══ -->
   <div class="sending-overlay" id="sendingOverlay">
     <div class="sending-box">
-      <div class="loading-spinner"></div>
+      <div class="sending-spinner"></div>
       <p>กำลังบันทึกการขาย...</p>
     </div>
   </div>
@@ -303,7 +306,7 @@
 // ═══════════════════════════════════════
 
 // ★★★ ใส่ URL ของ GAS Web App ที่ deploy แล้ว ★★★
-var GAS_URL = 'https://script.google.com/macros/s/YOUR_DEPLOY_ID/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzfepuwQRmc2v14DZl1N0n1c5yk8-pKZyXolVV3-LKdlM6_iGX7ZaWp1m-F4Sa09Im8/exec';
 
 var DAY_THEMES = [
   { day: 'อาทิตย์', gradient: 'linear-gradient(135deg, #E53935, #FF5252)' },
@@ -334,7 +337,7 @@ var COLOR_MAP = {
   'tidepool':{dot:'#2196F3',bg:'#2196F315',text:'#1976D2'}
 };
 
-// ═══ URL PARAMS ═══
+// ═══ อ่าน groupId จาก URL params ═══
 var urlParams = new URLSearchParams(window.location.search);
 var GROUP_ID = urlParams.get('groupId') || '';
 
@@ -342,7 +345,7 @@ var GROUP_ID = urlParams.get('groupId') || '';
 var items = [];
 
 // ═══════════════════════════════════════
-// LOAD STOCK DATA (เรียกครั้งเดียวตอนเปิดเพจ)
+// API: โหลดข้อมูลสต๊อก (เรียกครั้งเดียวตอนเปิดเพจ)
 // ═══════════════════════════════════════
 async function loadStockData() {
   var loadingEl = document.getElementById('loadingScreen');
@@ -353,23 +356,18 @@ async function loadStockData() {
 
   try {
     var res = await fetch(GAS_URL + '?page=stockData');
-
-    // GAS redirect → ต้อง follow redirect แล้ว parse JSON
-    // GAS doGet returns ContentService JSON ซึ่ง fetch ได้ตรง
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
     var stockData = await res.json();
-
     if (!stockData || !stockData.length) {
       throw new Error('ไม่มีสินค้าในสต๊อก');
     }
 
-    // Map stock data → items
+    // Map stock data → items (เหมือนเดิมทุกประการ)
     items = stockData.map(function(s) {
       return { id: s.id, name: s.name, stock: s.stock, qty: s.stock, price: 0 };
     });
 
-    // ซ่อน loading แสดง form
     loadingEl.classList.add('hide');
     render();
 
@@ -381,23 +379,23 @@ async function loadStockData() {
 }
 
 // ═══════════════════════════════════════
-// SEND SALE (POST ไป GAS)
+// API: ส่งข้อมูลขาย (POST ไป GAS)
 // ═══════════════════════════════════════
 async function sendSale(saleData) {
+  // ★ ใช้ text/plain เพื่อหลีก CORS preflight (GAS ไม่รองรับ OPTIONS)
   var res = await fetch(GAS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },  // GAS ต้องใช้ text/plain เพื่อหลีก CORS preflight
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({
       action: 'recordSale',
       data: saleData
     })
   });
-
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return await res.json();
 }
 
-// ═══ UTILS ═══
+// ═══ UTILS (เหมือนเดิม 100%) ═══
 function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function getShipping(){ return parseInt(document.getElementById('shippingInput').value)||0; }
 function getActiveItems(){ return items.filter(function(i){return i.qty>0&&i.price>0;}); }
@@ -418,7 +416,7 @@ function parseProduct(name){
   return {model:model||name,storage:storage,colorName:color,colorKey:colorKey};
 }
 
-// ═══ RENDER FORM ═══
+// ═══ RENDER FORM (เหมือนเดิม 100%) ═══
 function render(){
   var c=document.getElementById('cardList'); c.innerHTML='';
   var ts=0; items.forEach(function(it){ts+=it.stock;});
@@ -461,7 +459,7 @@ function updateSummary(){
   document.getElementById('btnSell').className='btn btn-sell'+(hasValid?'':' disabled');
 }
 
-// ═══ ACTIONS ═══
+// ═══ ACTIONS (เหมือนเดิม 100%) ═══
 function changeQty(idx,d){items[idx].qty=Math.max(0,Math.min(items[idx].stock,items[idx].qty+d));render();}
 function setQty(idx,v){items[idx].qty=Math.max(0,Math.min(items[idx].stock,parseInt(v)||0));render();}
 function setPrice(idx,v){
@@ -475,7 +473,7 @@ function setPrice(idx,v){
 }
 function toggleItem(idx){items[idx].qty=items[idx].qty>0?0:items[idx].stock;render();}
 
-// ═══ OFFER ═══
+// ═══ OFFER (เหมือนเดิม 100%) ═══
 function showOffer(){
   var active=getActiveItems(); if(!active.length) return;
   var shipping=getShipping(),now=new Date(),theme=DAY_THEMES[now.getDay()];
@@ -515,6 +513,7 @@ function showConfirm(){
 }
 function hideConfirm(){document.getElementById('confirmOverlay').classList.remove('show');}
 
+// ★ doSell — เปลี่ยนจาก google.script.run เป็น fetch API ★
 async function doSell(){
   hideConfirm();
 
@@ -527,7 +526,6 @@ async function doSell(){
   html+='<div class="success-total"><span>ยอดรวม</span><span style="color:#1DB446">฿'+fmt(total)+'</span></div>';
   document.getElementById('successSummary').innerHTML=html;
 
-  // ★ ส่งข้อมูลไป GAS API
   var saleData = {
     items: active.map(function(i){ return {name:i.name, qty:i.qty, price:i.price}; }),
     shipping: shipping,
@@ -553,19 +551,17 @@ async function doSell(){
   }
 }
 
+// ★ hideSuccess — เปลี่ยนจาก google.script.host.close() ★
 function hideSuccess(){
   document.getElementById('successOverlay').classList.remove('show');
-  // รีเซ็ตฟอร์มหรือปิดหน้า
   closeWindow();
 }
 
+// ★ closeWindow — เปลี่ยนจาก google.script.host.close() ★
 function closeWindow(){
-  // ลองปิด tab/window ถ้าเปิดจาก LINE LIFF หรือ window.open
   try { window.close(); } catch(e) {}
-  // ถ้าปิดไม่ได้ (เปิดตรงจาก browser) → redirect กลับ หรือ reload
-  setTimeout(function(){
-    window.location.reload();
-  }, 300);
+  // ถ้าปิดไม่ได้ (เปิดตรงจาก browser) → reload
+  setTimeout(function(){ window.location.reload(); }, 300);
 }
 
 // ═══ INIT: โหลดข้อมูลตอนเปิดเพจ ═══
