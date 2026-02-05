@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🛒 แจ้งขายสินค้า</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Noto Sans Thai', 'Helvetica Neue', sans-serif;
+      background: #f0f2f5; color: #222;
+      padding-bottom: 150px;
+    }
+
+    /* ═══ HEADER ═══ */
+    .header {
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      padding: 18px 20px; color: #fff;
+      position: sticky; top: 0; z-index: 40;
+      box-shadow: 0 4px 20px rgba(108,92,231,0.3);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header-title { font-size: 22px; font-weight: 900; }
+    .header-sub { font-size: 11px; opacity: 0.6; margin-top: 2px; }
+    .header-stock { text-align: right; }
+    .header-stock-num { font-size: 26px; font-weight: 900; }
+    .header-stock-label { font-size: 9px; opacity: 0.5; }
+
+    /* ═══ PRODUCT CARD ═══ */
+    .card-list { padding: 12px; }
+    .card {
+      background: #fff; border-radius: 16px; margin-bottom: 10px;
+      border: 1px solid #e8e8e8; overflow: hidden;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+    .card.inactive { opacity: 0.45; border-color: #f0f0f0; }
+    .card.active { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .card-top { padding: 14px 16px 4px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-name { font-size: 17px; font-weight: 700; color: #222; flex: 1; line-height: 1.3; }
+    .card-name small { font-size: 11px; color: #bbb; font-weight: 400; display: block; margin-top: 2px; }
+    .card-subtotal { background: #1DB44612; border-radius: 10px; padding: 5px 12px; font-size: 16px; font-weight: 800; color: #1DB446; white-space: nowrap; flex-shrink: 0; min-width: 60px; text-align: center; display: none; }
+    .card-subtotal.show { display: block; }
+    .card-controls { padding: 8px 16px 14px; display: flex; align-items: center; gap: 8px; }
+    .qty-group { display: flex; align-items: center; background: #f5f5f5; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+    .qty-btn { width: 44px; height: 48px; border: none; background: transparent; font-size: 22px; font-weight: 700; color: #6c5ce7; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .qty-btn:disabled { color: #ddd; cursor: default; }
+    .qty-btn:active:not(:disabled) { background: #6c5ce720; }
+    .qty-input { width: 52px; height: 48px; border: none; background: #fff; text-align: center; font-size: 24px; font-weight: 900; color: #222; outline: none; -moz-appearance: textfield; }
+    .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .toggle-btn { padding: 8px 10px; border-radius: 10px; border: 1px solid #eee; background: #fff5f5; color: #FF6B6B; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; }
+    .toggle-btn.off { background: #f0fff4; color: #1DB446; }
+    .toggle-btn:active { transform: scale(0.95); }
+    .price-group { flex: 1; display: flex; align-items: center; background: #f5f5f5; border-radius: 12px; border: 1px solid #eee; padding: 0 12px; min-width: 0; }
+    .price-group.warn { border-color: #ffa502; background: #fff8e8; }
+    .price-sign { font-size: 18px; color: #999; font-weight: 700; }
+    .price-input { flex: 1; height: 48px; border: none; background: transparent; font-size: 22px; font-weight: 800; color: #222; outline: none; padding-left: 4px; min-width: 0; -moz-appearance: textfield; }
+    .price-input::-webkit-outer-spin-button, .price-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .price-input::placeholder { color: #ccc; font-weight: 400; font-size: 16px; }
+
+    /* ═══ SHIPPING INPUT ═══ */
+    .shipping-card { background: #fff; border-radius: 16px; margin: 0 12px 10px; border: 1px solid #e8e8e8; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+    .shipping-card .label { font-size: 15px; font-weight: 600; color: #555; white-space: nowrap; }
+    .shipping-card .input-wrap { flex: 1; display: flex; align-items: center; background: #f5f5f5; border-radius: 12px; border: 1px solid #eee; padding: 0 12px; }
+    .shipping-card .input-wrap input { flex: 1; height: 44px; border: none; background: transparent; font-size: 20px; font-weight: 800; color: #222; outline: none; padding-left: 4px; min-width: 0; -moz-appearance: textfield; }
+    .shipping-card .input-wrap input::-webkit-outer-spin-button, .shipping-card .input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .shipping-card .input-wrap input::placeholder { color: #ccc; font-weight: 400; font-size: 14px; }
+
+    /* ═══ BOTTOM BAR ═══ */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e8e8e8; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); padding: 12px 16px; z-index: 50; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .summary-label { font-size: 13px; color: #888; }
+    .summary-total { font-size: 24px; font-weight: 900; color: #1DB446; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 14px 8px; border-radius: 14px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .btn:active { transform: scale(0.97); }
+    .btn-offer { background: linear-gradient(135deg, #1DB446, #0d9e3a); color: #fff; box-shadow: 0 4px 12px rgba(29,180,70,0.3); }
+    .btn-sell { background: linear-gradient(135deg, #FF6B6B, #ee5a24); color: #fff; box-shadow: 0 4px 12px rgba(255,107,107,0.3); }
+    .btn-close-main { flex: 0; padding: 14px 20px; border-radius: 14px; border: 1px solid #e0e0e0; background: #fff; color: #888; }
+    .btn.disabled { background: #e0e0e0 !important; color: #999 !important; box-shadow: none !important; cursor: default; }
+
+    /* ═══ OVERLAY ═══ */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .overlay.show { opacity: 1; pointer-events: auto; }
+    .modal { width: 100%; max-width: 460px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); background: #fff; transform: translateY(30px); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; }
+    .overlay.show .modal { transform: translateY(0); }
+
+    /* ═══ OFFER MODAL ═══ */
+    .offer-head { padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; color: #fff; }
+    .offer-head .left { display: flex; align-items: center; gap: 10px; }
+    .offer-head .icon-box { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .offer-head .title { font-size: 17px; font-weight: 800; }
+    .offer-head .brand { font-size: 9px; opacity: 0.6; font-weight: 600; letter-spacing: 1px; }
+    .offer-head .date-box { text-align: right; }
+    .offer-head .date-box .day { font-size: 13px; font-weight: 700; }
+    .offer-head .date-box .full { font-size: 10px; opacity: 0.6; }
+    .col-header { display: flex; align-items: center; padding: 8px 20px; background: #f8f9fa; border-bottom: 2px solid #e8e8e8; font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; }
+    .col-header .c-name { flex: 1; } .col-header .c-qty { width: 50px; text-align: center; } .col-header .c-price { width: 105px; text-align: right; }
+    .oitem-row { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; }
+    .oitem-row:last-child { border-bottom: none; }
+    .oitem-row:nth-child(even) { background: #fcfcfc; }
+    .oitem-name { flex: 1; min-width: 0; }
+    .oitem-name .model { font-size: 15px; font-weight: 700; color: #222; line-height: 1.3; }
+    .oitem-name .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .tag-storage { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 5px; background: #f0f0f0; border: 1px solid #e0e0e0; font-size: 10px; font-weight: 700; color: #555; }
+    .tag-color { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px 1px 5px; border-radius: 5px; font-size: 10px; font-weight: 600; }
+    .tag-color .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+    .oitem-qty { width: 50px; text-align: center; flex-shrink: 0; }
+    .oitem-qty .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 34px; background: #6c5ce710; border-radius: 8px; font-size: 20px; font-weight: 900; color: #6c5ce7; }
+    .oitem-price { width: 105px; text-align: right; flex-shrink: 0; }
+    .oitem-price .unit { font-size: 19px; font-weight: 800; color: #1DB446; line-height: 1.2; }
+    .oitem-price .sub { font-size: 11px; color: #aaa; margin-top: 1px; }
+    .offer-shipping { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #fffdf5; border-top: 1px dashed #e8d8a0; }
+    .offer-shipping .slabel { font-size: 13px; color: #888; } .offer-shipping .sval { font-size: 16px; font-weight: 700; color: #e6a817; }
+    .offer-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f8f9fa; border-top: 2px solid #e8e8e8; }
+    .offer-total .left { font-size: 13px; color: #888; }
+    .offer-total .right { text-align: right; }
+    .offer-total .right .label { font-size: 10px; color: #999; }
+    .offer-total .right .num { font-size: 28px; font-weight: 900; color: #1DB446; line-height: 1.1; }
+    .modal-close-btn { display: block; width: calc(100% - 40px); margin: 0 auto 14px; padding: 12px; border-radius: 12px; border: none; background: #e8e8e8; color: #666; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+    /* ═══ CONFIRM ═══ */
+    .confirm-body { padding: 32px 24px 24px; text-align: center; }
+    .confirm-body .icon { font-size: 48px; margin-bottom: 12px; }
+    .confirm-body h3 { font-size: 20px; font-weight: 800; }
+    .confirm-body p { font-size: 14px; color: #888; margin-top: 8px; }
+    .confirm-body .sub-text { font-size: 12px; color: #bbb; margin-top: 4px; }
+    .confirm-btns { display: flex; gap: 10px; margin-top: 24px; }
+    .confirm-btns .btn { flex: 1; padding: 14px; border-radius: 12px; font-size: 15px; }
+    .btn-cancel { border: 1px solid #e0e0e0; background: #fff; color: #888; }
+    .btn-confirm-sell { background: linear-gradient(135deg, #FF6B6B, #ee5a24); color: #fff; border: none; box-shadow: 0 4px 12px rgba(255,107,107,0.4); }
+
+    /* ═══ SUCCESS ═══ */
+    .success-body { padding: 32px 24px 24px; text-align: center; }
+    .success-icon { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #1DB446, #0d9e3a); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 36px; }
+    .success-summary { background: #f8f9fa; border-radius: 12px; padding: 14px 16px; margin-top: 20px; text-align: left; }
+    .success-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: #555; border-bottom: 1px solid #eee; }
+    .success-row:last-child { border-bottom: none; }
+    .success-row .amt { font-weight: 700; color: #1DB446; }
+    .success-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e0e0e0; }
+    .btn-done { width: 100%; margin-top: 20px; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #1DB446, #0d9e3a); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(29,180,70,0.3); font-family: inherit; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="header-sub">DS•ONLINE</div>
+      <div class="header-title">🛒 แจ้งขายสินค้า</div>
+    </div>
+    <div class="header-stock">
+      <div class="header-stock-num" id="totalStockDisplay">—</div>
+      <div class="header-stock-label">สต๊อกคงเหลือ</div>
+    </div>
+  </div>
+
+  <div class="card-list" id="cardList"></div>
+
+  <div class="shipping-card">
+    <div class="label">🚚 ค่าขนส่ง</div>
+    <div class="input-wrap">
+      <span class="price-sign">฿</span>
+      <input type="number" id="shippingInput" placeholder="ไม่มี" value="" inputmode="numeric" oninput="updateSummary()" onfocus="this.select()">
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="summary-row" id="summaryRow" style="display:none;">
+      <div class="summary-label" id="summaryLabel"></div>
+      <div class="summary-total" id="summaryTotal">฿0</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-offer disabled" id="btnOffer" onclick="showOffer()">📋 เสนอขาย</button>
+      <button class="btn btn-sell disabled" id="btnSell" onclick="showConfirm()">🔥 ขาย</button>
+      <button class="btn btn-close-main" onclick="closeWindow()">✕</button>
+    </div>
+  </div>
+
+  <!-- Offer -->
+  <div class="overlay" id="offerOverlay" onclick="hideOffer()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="offer-head" id="offerHead">
+        <div class="left">
+          <div class="icon-box">📋</div>
+          <div><div class="brand">DS•ONLINE</div><div class="title">ใบเสนอราคา</div></div>
+        </div>
+        <div class="date-box"><div class="day" id="offerDay"></div><div class="full" id="offerDate"></div></div>
+      </div>
+      <div class="col-header"><div class="c-name">สินค้า</div><div class="c-qty">จำนวน</div><div class="c-price">ราคา</div></div>
+      <div id="offerItems"></div>
+      <div id="offerShipping"></div>
+      <div class="offer-total">
+        <div class="left" id="offerCount"></div>
+        <div class="right"><div class="label">ยอดรวมทั้งหมด</div><div class="num" id="offerTotal">฿0</div></div>
+      </div>
+      <button class="modal-close-btn" onclick="hideOffer()">ปิดหน้าเสนอราคา</button>
+    </div>
+  </div>
+
+  <!-- Confirm -->
+  <div class="overlay" id="confirmOverlay">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="confirm-body">
+        <div class="icon">⚠️</div>
+        <h3>ยืนยันการขาย?</h3>
+        <p id="confirmInfo"></p>
+        <div class="sub-text">ระบบจะบันทึกและแจ้งในกลุ่ม LINE</div>
+        <div class="confirm-btns">
+          <button class="btn btn-cancel" onclick="hideConfirm()">ยกเลิก</button>
+          <button class="btn btn-confirm-sell" onclick="doSell()">✅ ขายเลย</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div class="overlay" id="successOverlay">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="success-body">
+        <div class="success-icon">✅</div>
+        <h2 style="font-size:22px;font-weight:800">บันทึกการขายแล้ว!</h2>
+        <p style="font-size:14px;color:#888;margin-top:8px">แจ้งในกลุ่ม LINE เรียบร้อย</p>
+        <div class="success-summary" id="successSummary"></div>
+        <button class="btn-done" onclick="hideSuccess()">เสร็จสิ้น</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+var DAY_THEMES = [
+  { day: 'อาทิตย์', gradient: 'linear-gradient(135deg, #E53935, #FF5252)' },
+  { day: 'จันทร์',  gradient: 'linear-gradient(135deg, #F9A825, #FFD54F)' },
+  { day: 'อังคาร',  gradient: 'linear-gradient(135deg, #EC407A, #F48FB1)' },
+  { day: 'พุธ',     gradient: 'linear-gradient(135deg, #2E7D32, #66BB6A)' },
+  { day: 'พฤหัสฯ',  gradient: 'linear-gradient(135deg, #EF6C00, #FFB74D)' },
+  { day: 'ศุกร์',   gradient: 'linear-gradient(135deg, #1565C0, #64B5F6)' },
+  { day: 'เสาร์',   gradient: 'linear-gradient(135deg, #6A1B9A, #BA68C8)' }
+];
+var THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+var COLOR_MAP = {
+  'midnight':{dot:'#1C1C3A',bg:'#1C1C3A15',text:'#1C1C3A'},
+  'starlight':{dot:'#F5E6D3',bg:'#F5E6D320',text:'#8B7355'},
+  'black':{dot:'#1a1a1a',bg:'#1a1a1a12',text:'#333'},
+  'white':{dot:'#f0f0f0',bg:'#f0f0f015',text:'#888'},
+  'pink':{dot:'#F4A4B8',bg:'#F4A4B818',text:'#C0607A'},
+  'red':{dot:'#E53935',bg:'#E5393515',text:'#C62828'},
+  'blue':{dot:'#3B82F6',bg:'#3B82F615',text:'#2563EB'},
+  'green':{dot:'#22C55E',bg:'#22C55E15',text:'#16A34A'},
+  'gold':{dot:'#D4A843',bg:'#D4A84318',text:'#8B7020'},
+  'silver':{dot:'#C0C0C0',bg:'#C0C0C018',text:'#707070'},
+  'purple':{dot:'#9333EA',bg:'#9333EA15',text:'#7C22CF'},
+  'cosmic orange':{dot:'#FF6B2C',bg:'#FF6B2C15',text:'#E55A1B'},
+  'cosmic black':{dot:'#1a1a1a',bg:'#1a1a1a12',text:'#333'},
+  'natural titanium':{dot:'#8C8478',bg:'#8C847815',text:'#6B5F53'},
+  'desert titanium':{dot:'#BFA27E',bg:'#BFA27E18',text:'#8B7355'},
+  'tidepool':{dot:'#2196F3',bg:'#2196F315',text:'#1976D2'}
+};
+
+// ═══ DATA (injected from Apps Script server) ═══
+var STOCK_DATA = <?!= stockData ?>;
+var GROUP_ID = '<?!= groupId ?>';
+var items = STOCK_DATA.map(function(s){ return {id:s.id,name:s.name,stock:s.stock,qty:s.stock,price:0}; });
+
+// ═══ UTILS ═══
+function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function getShipping(){ return parseInt(document.getElementById('shippingInput').value)||0; }
+function getActiveItems(){ return items.filter(function(i){return i.qty>0&&i.price>0;}); }
+function parseProduct(name){
+  var storage=null,color=null,model=name.trim(),colorKey=null;
+  var sm=name.match(/\b(\d+\s*(?:GB|TB))\b/i);
+  if(sm){
+    storage=sm[1].replace(/\s+/g,'').toUpperCase();
+    model=name.substring(0,name.indexOf(sm[0])).trim();
+    var after=name.substring(name.indexOf(sm[0])+sm[0].length).trim();
+    if(after) color=after;
+  }
+  if(color){
+    var lc=color.toLowerCase();
+    var keys=Object.keys(COLOR_MAP).sort(function(a,b){return b.length-a.length;});
+    for(var i=0;i<keys.length;i++){if(lc.indexOf(keys[i])>=0){colorKey=keys[i];break;}}
+  }
+  return {model:model||name,storage:storage,colorName:color,colorKey:colorKey};
+}
+
+// ═══ RENDER FORM ═══
+function render(){
+  var c=document.getElementById('cardList'); c.innerHTML='';
+  var ts=0; items.forEach(function(it){ts+=it.stock;});
+  document.getElementById('totalStockDisplay').textContent=ts;
+  items.forEach(function(item,idx){
+    var isActive=item.qty>0, subtotal=item.qty*item.price;
+    var card=document.createElement('div');
+    card.className='card '+(isActive?'active':'inactive');
+    card.innerHTML=
+      '<div class="card-top"><div class="card-name">'+item.name+'<small>สต๊อก: '+item.stock+' เครื่อง</small></div>'+
+      '<div class="card-subtotal '+(subtotal>0?'show':'')+'">฿'+fmt(subtotal)+'</div></div>'+
+      '<div class="card-controls">'+
+        '<div class="qty-group">'+
+          '<button class="qty-btn" onclick="changeQty('+idx+',-1)" '+(item.qty<=0?'disabled':'')+'>−</button>'+
+          '<input class="qty-input" type="number" value="'+item.qty+'" onchange="setQty('+idx+',this.value)" onfocus="this.select()" inputmode="numeric">'+
+          '<button class="qty-btn" onclick="changeQty('+idx+',1)" '+(item.qty>=item.stock?'disabled':'')+'>+</button>'+
+        '</div>'+
+        '<button class="toggle-btn '+(item.qty>0?'':'off')+'" onclick="toggleItem('+idx+')">'+(item.qty>0?'ไม่ขาย':'ขาย')+'</button>'+
+        '<div class="price-group '+(isActive&&item.price===0?'warn':'')+'">'+
+          '<span class="price-sign">฿</span>'+
+          '<input class="price-input" type="number" placeholder="ราคา" value="'+(item.price||'')+'" '+
+            'onchange="setPrice('+idx+',this.value)" oninput="setPrice('+idx+',this.value)" onfocus="this.select()" inputmode="numeric">'+
+        '</div>'+
+      '</div>';
+    c.appendChild(card);
+  });
+  updateSummary();
+}
+function updateSummary(){
+  var active=getActiveItems(),total=0,totalQty=0;
+  active.forEach(function(i){total+=i.qty*i.price;totalQty+=i.qty;});
+  var shipping=getShipping(); total+=shipping;
+  var hasValid=active.length>0;
+  document.getElementById('summaryRow').style.display=hasValid?'flex':'none';
+  var label=active.length+' รายการ · '+totalQty+' เครื่อง';
+  if(shipping>0) label+=' + ขนส่ง';
+  document.getElementById('summaryLabel').textContent=label;
+  document.getElementById('summaryTotal').textContent='฿'+fmt(total);
+  document.getElementById('btnOffer').className='btn btn-offer'+(hasValid?'':' disabled');
+  document.getElementById('btnSell').className='btn btn-sell'+(hasValid?'':' disabled');
+}
+
+// ═══ ACTIONS ═══
+function changeQty(idx,d){items[idx].qty=Math.max(0,Math.min(items[idx].stock,items[idx].qty+d));render();}
+function setQty(idx,v){items[idx].qty=Math.max(0,Math.min(items[idx].stock,parseInt(v)||0));render();}
+function setPrice(idx,v){
+  items[idx].price=Math.max(0,parseInt(v)||0); updateSummary();
+  var cards=document.querySelectorAll('.card');
+  if(cards[idx]){
+    var sub=cards[idx].querySelector('.card-subtotal'),st=items[idx].qty*items[idx].price;
+    sub.textContent='฿'+fmt(st); sub.className='card-subtotal'+(st>0?' show':'');
+    cards[idx].querySelector('.price-group').className='price-group'+(items[idx].qty>0&&items[idx].price===0?' warn':'');
+  }
+}
+function toggleItem(idx){items[idx].qty=items[idx].qty>0?0:items[idx].stock;render();}
+
+// ═══ OFFER ═══
+function showOffer(){
+  var active=getActiveItems(); if(!active.length) return;
+  var shipping=getShipping(),now=new Date(),theme=DAY_THEMES[now.getDay()];
+  document.getElementById('offerHead').style.background=theme.gradient;
+  document.getElementById('offerDay').textContent='วัน'+theme.day;
+  document.getElementById('offerDate').textContent=now.getDate()+' '+THAI_MONTHS[now.getMonth()]+' '+(now.getFullYear()+543);
+  var html='',gt=0,gq=0;
+  active.forEach(function(item){
+    var p=parseProduct(item.name),sub=item.qty*item.price; gt+=sub; gq+=item.qty;
+    var tags='';
+    if(p.storage) tags+='<span class="tag-storage"><span style="font-size:9px">💾</span> '+p.storage+'</span>';
+    if(p.colorName){
+      var cm=p.colorKey?COLOR_MAP[p.colorKey]:{dot:'#ccc',bg:'#f0f0f0',text:'#888'};
+      tags+='<span class="tag-color" style="background:'+cm.bg+';color:'+cm.text+'"><span class="dot" style="background:'+cm.dot+'"></span>'+p.colorName+'</span>';
+    }
+    var ph='<div class="unit">฿'+fmt(item.price)+'</div>';
+    if(item.qty>1) ph+='<div class="sub">รวม ฿'+fmt(sub)+'</div>';
+    html+='<div class="oitem-row"><div class="oitem-name"><div class="model">'+p.model+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'</div>'+
+      '<div class="oitem-qty"><span class="badge">'+item.qty+'</span></div><div class="oitem-price">'+ph+'</div></div>';
+  });
+  document.getElementById('offerItems').innerHTML=html;
+  var se=document.getElementById('offerShipping');
+  if(shipping>0){se.innerHTML='<div class="offer-shipping"><div class="slabel">🚚 ค่าขนส่ง</div><div class="sval">฿'+fmt(shipping)+'</div></div>';gt+=shipping;}
+  else se.innerHTML='';
+  document.getElementById('offerCount').textContent='รวม '+gq+' เครื่อง';
+  document.getElementById('offerTotal').textContent='฿'+fmt(gt);
+  document.getElementById('offerOverlay').classList.add('show');
+}
+function hideOffer(){document.getElementById('offerOverlay').classList.remove('show');}
+
+// ═══ CONFIRM + SELL ═══
+function showConfirm(){
+  var active=getActiveItems(); if(!active.length) return;
+  var total=0; active.forEach(function(i){total+=i.qty*i.price;}); total+=getShipping();
+  document.getElementById('confirmInfo').innerHTML=active.length+' รายการ · ยอดรวม <b style="color:#FF6B6B">฿'+fmt(total)+'</b>';
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function hideConfirm(){document.getElementById('confirmOverlay').classList.remove('show');}
+function doSell(){
+  hideConfirm();
+  var active=getActiveItems(),shipping=getShipping(),total=0,html='';
+  active.forEach(function(item){
+    var sub=item.qty*item.price; total+=sub;
+    html+='<div class="success-row"><span>'+item.name+' ×'+item.qty+'</span><span class="amt">฿'+fmt(sub)+'</span></div>';
+  });
+  if(shipping>0){total+=shipping;html+='<div class="success-row"><span>🚚 ค่าขนส่ง</span><span class="amt">฿'+fmt(shipping)+'</span></div>';}
+  html+='<div class="success-total"><span>ยอดรวม</span><span style="color:#1DB446">฿'+fmt(total)+'</span></div>';
+  document.getElementById('successSummary').innerHTML=html;
+
+  // ★ ส่งข้อมูลไป server
+  var saleData = {
+    items: active.map(function(i){ return {name:i.name, qty:i.qty, price:i.price}; }),
+    shipping: shipping,
+    total: total,
+    groupId: GROUP_ID
+  };
+
+  // Disable buttons ระหว่างรอ
+  document.querySelector('.btn-confirm-sell').disabled = true;
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      document.getElementById('successOverlay').classList.add('show');
+      if (!result.success) {
+        alert('⚠️ ' + result.message);
+      }
+    })
+    .withFailureHandler(function(err) {
+      alert('⚠️ เกิดข้อผิดพลาด: ' + err.message);
+      document.querySelector('.btn-confirm-sell').disabled = false;
+    })
+    .recordSale(saleData);
+}
+function hideSuccess(){
+  document.getElementById('successOverlay').classList.remove('show');
+  google.script.host.close();
+}
+function closeWindow(){
+  google.script.host.close();
+}
+
+render();
+</script>
+</body>
+</html>
