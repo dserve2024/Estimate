@@ -581,10 +581,8 @@ async function shareOffer() {
   if (!active.length) return;
 
   try {
-    alert('DEBUG:\nliffType=' + typeof liff
-      + '\nliffReady=' + liffReady
+    alert('DEBUG:\nliffReady=' + liffReady
       + '\nisInClient=' + liff.isInClient()
-      + '\nisInApp=' + liff.isInApp()
       + '\nshareTargetPicker=' + liff.isApiAvailable('shareTargetPicker')
       + '\nURL=' + location.href.substring(0, 80));
   } catch(e) {
