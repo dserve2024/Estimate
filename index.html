@@ -580,9 +580,12 @@ async function shareOffer() {
   var active = getActiveItems();
   if (!active.length) return;
 
-  if (!liffReady) { alert('❌ liffReady=false — LIFF init ล้มเหลว'); return; }
-  if (!liff.isInClient()) { alert('❌ isInClient=false — ไม่ได้เปิดผ่าน LIFF URL'); return; }
-  if (!liff.isApiAvailable('shareTargetPicker')) { alert('❌ shareTargetPicker ไม่ available — ต้องเปิดใน LINE Developers Console'); return; }
+  alert('DEBUG:\nliffReady=' + liffReady
+    + '\nisInClient=' + liff.isInClient()
+    + '\nisInApp=' + liff.isInApp()
+    + '\nshareTargetPicker=' + liff.isApiAvailable('shareTargetPicker')
+    + '\nURL=' + location.href.substring(0, 60));
+  return;
 
   var shipping = getShipping();
   var now = new Date();
