@@ -580,16 +580,8 @@ async function shareOffer() {
   var active = getActiveItems();
   if (!active.length) return;
 
-  if (!liffReady) {
-    alert('⚠️ LIFF ยังไม่พร้อม (init failed) — กรุณารีโหลดแล้วลองใหม่');
-    return;
-  }
-  if (!liff.isInClient()) {
-    alert('⚠️ กรุณาเปิดผ่าน LINE เท่านั้น (isInClient=false)');
-    return;
-  }
-  if (!liff.isApiAvailable('shareTargetPicker')) {
-    alert('⚠️ shareTargetPicker ไม่พร้อมใช้งาน — กรุณาเปิดใช้ใน LINE Developers Console');
+  if (!liffReady || !liff.isInClient() || !liff.isApiAvailable('shareTargetPicker')) {
+    alert('⚠️ ฟีเจอร์แชร์ใช้ได้เฉพาะใน LINE เท่านั้น');
     return;
   }
 
