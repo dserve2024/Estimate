@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>🛒 แจ้งขายสินค้า</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -169,6 +170,9 @@
     .offer-total .right .label { font-size: 10px; color: #999; }
     .offer-total .right .num { font-size: 28px; font-weight: 900; color: #1DB446; line-height: 1.1; }
     .modal-close-btn { display: block; width: calc(100% - 40px); margin: 0 auto 14px; padding: 12px; border-radius: 12px; border: none; background: #e8e8e8; color: #666; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-share-flex { display: block; width: calc(100% - 40px); margin: 14px auto 6px; padding: 13px; border-radius: 12px; border: none; background: linear-gradient(135deg, #06C755, #04a344); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 4px 12px rgba(6,199,85,0.25); }
+    .btn-share-flex:active { transform: scale(0.97); }
+    .btn-share-flex:disabled { background: #e0e0e0; color: #999; box-shadow: none; }
 
     /* ═══ CONFIRM ═══ */
     .confirm-body { padding: 32px 24px 24px; text-align: center; }
@@ -267,6 +271,7 @@
         <div class="left" id="offerCount"></div>
         <div class="right"><div class="label">ยอดรวมทั้งหมด</div><div class="num" id="offerTotal">฿0</div></div>
       </div>
+      <button class="btn-share-flex" id="btnShareFlex" onclick="shareOffer()">📤 แชร์ใน LINE</button>
       <button class="modal-close-btn" onclick="hideOffer()">ปิดหน้าเสนอราคา</button>
     </div>
   </div>
@@ -562,6 +567,112 @@ function closeWindow(){
   try { window.close(); } catch(e) {}
   // ถ้าปิดไม่ได้ (เปิดตรงจาก browser) → reload
   setTimeout(function(){ window.location.reload(); }, 300);
+}
+
+// ═══ LIFF ═══
+var LIFF_ID = '2007885305-6twHMSNw';
+var liffReady = false;
+liff.init({ liffId: LIFF_ID })
+  .then(function() { liffReady = true; })
+  .catch(function(e) { console.warn('LIFF init failed:', e); });
+
+async function shareOffer() {
+  var active = getActiveItems();
+  if (!active.length) return;
+
+  if (!liffReady || !liff.isApiAvailable('shareTargetPicker')) {
+    alert('⚠️ ฟีเจอร์แชร์ใช้ได้เฉพาะใน LINE เท่านั้น');
+    return;
+  }
+
+  var shipping = getShipping();
+  var now = new Date();
+  var dayColors = ['#E53935','#F9A825','#EC407A','#2E7D32','#EF6C00','#1565C0','#6A1B9A'];
+  var dayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
+  var dayIdx = now.getDay();
+  var timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+  var bodyContents = [];
+  var totalQty = 0, gt = 0;
+
+  active.forEach(function(item) {
+    totalQty += item.qty;
+    gt += item.qty * item.price;
+    bodyContents.push({
+      type: 'box', layout: 'horizontal', margin: 'md',
+      contents: [
+        { type: 'text', text: item.name, size: 'sm', color: '#222222', flex: 5, wrap: true },
+        { type: 'text', text: 'x' + item.qty, size: 'sm', color: '#6c5ce7', align: 'center', flex: 1, weight: 'bold' },
+        { type: 'text', text: '฿' + fmt(item.price), size: 'sm', color: '#1DB446', align: 'end', flex: 3, weight: 'bold' }
+      ]
+    });
+    if (item.qty > 1) {
+      bodyContents.push({
+        type: 'text', text: '  รวม ฿' + fmt(item.qty * item.price),
+        size: 'xxs', color: '#aaaaaa', margin: 'xs'
+      });
+    }
+  });
+
+  bodyContents.push({ type: 'separator', margin: 'lg' });
+
+  if (shipping > 0) {
+    gt += shipping;
+    bodyContents.push({
+      type: 'box', layout: 'horizontal', margin: 'md',
+      contents: [
+        { type: 'text', text: '🚚 ค่าขนส่ง', size: 'sm', color: '#888888', flex: 5 },
+        { type: 'text', text: '฿' + fmt(shipping), size: 'sm', color: '#e6a817', align: 'end', flex: 3, weight: 'bold' }
+      ]
+    });
+  }
+
+  bodyContents.push({
+    type: 'box', layout: 'horizontal', margin: 'md',
+    contents: [
+      { type: 'text', text: 'ยอดรวม', size: 'md', color: '#222222', flex: 5, weight: 'bold' },
+      { type: 'text', text: '฿' + fmt(gt), size: 'xl', color: '#1DB446', align: 'end', flex: 4, weight: 'bold' }
+    ]
+  });
+
+  var flexContents = {
+    type: 'bubble', size: 'giga',
+    header: {
+      type: 'box', layout: 'horizontal', backgroundColor: dayColors[dayIdx], paddingAll: '14px',
+      contents: [
+        { type: 'box', layout: 'vertical', flex: 1, contents: [
+          { type: 'text', text: '🔥 ขายแล้ว!', size: 'xl', weight: 'bold', color: '#ffffff' },
+          { type: 'text', text: 'วัน' + dayNames[dayIdx] + ' · ' + timeStr, size: 'xxs', color: '#ffffff99' }
+        ]},
+        { type: 'box', layout: 'vertical', flex: 0, contents: [
+          { type: 'text', text: String(totalQty), size: 'xxl', weight: 'bold', color: '#ffffff', align: 'end' },
+          { type: 'text', text: 'เครื่อง', size: 'xxs', color: '#ffffff99', align: 'end' }
+        ]}
+      ]
+    },
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: bodyContents },
+    footer: {
+      type: 'box', layout: 'vertical', paddingAll: '10px',
+      contents: [{ type: 'text', text: 'DS•ONLINE · บันทึกอัตโนมัติ', size: 'xxs', color: '#bbbbbb', align: 'center' }]
+    }
+  };
+
+  var btn = document.getElementById('btnShareFlex');
+  btn.disabled = true;
+  btn.textContent = 'กำลังเปิด...';
+
+  try {
+    await liff.shareTargetPicker(
+      [{ type: 'flex', altText: '🔥 ขายแล้ว! ยอด ฿' + fmt(gt), contents: flexContents }],
+      { isMultiple: true }
+    );
+    hideOffer();
+  } catch (err) {
+    alert('⚠️ แชร์ไม่สำเร็จ: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 แชร์ใน LINE';
+  }
 }
 
 // ═══ INIT: โหลดข้อมูลตอนเปิดเพจ ═══
