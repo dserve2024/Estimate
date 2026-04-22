@@ -570,25 +570,11 @@ function closeWindow(){
 }
 
 // ═══ LIFF ═══
-var LIFF_ID = '2007885305-6twHMSNw';
-var liffReady = false;
-liff.init({ liffId: LIFF_ID })
-  .then(function() { liffReady = true; })
-  .catch(function(e) { console.warn('LIFF init failed:', e); });
+liff.init({ liffId: '2007885305-6twHMSNw' }).catch(function(e) { console.warn('LIFF init failed:', e); });
 
-async function shareOffer() {
+function shareOffer() {
   var active = getActiveItems();
   if (!active.length) return;
-
-  try {
-    alert('DEBUG:\nliffReady=' + liffReady
-      + '\nisInClient=' + liff.isInClient()
-      + '\nshareTargetPicker=' + liff.isApiAvailable('shareTargetPicker')
-      + '\nURL=' + location.href.substring(0, 80));
-  } catch(e) {
-    alert('ERROR: ' + e.message);
-  }
-  return;
 
   var shipping = getShipping();
   var now = new Date();
@@ -666,18 +652,22 @@ async function shareOffer() {
   btn.disabled = true;
   btn.textContent = 'กำลังเปิด...';
 
-  try {
-    await liff.shareTargetPicker(
-      [{ type: 'flex', altText: '🔥 ขายแล้ว! ยอด ฿' + fmt(gt), contents: flexContents }],
-      { isMultiple: true }
-    );
-    hideOffer();
-  } catch (err) {
-    alert('⚠️ แชร์ไม่สำเร็จ: ' + err.message);
-  } finally {
+  liff.shareTargetPicker(
+    [{ type: 'flex', altText: '🔥 ขายแล้ว! ยอด ฿' + fmt(gt), contents: flexContents }],
+    { isMultiple: true }
+  ).then(function(res) {
+    if (res) hideOffer();
+  }).catch(function(err) {
+    var msg = (err && err.message) || '';
+    if (msg.indexOf('not available') > -1 || msg.indexOf('client') > -1) {
+      alert('กรุณาเปิดผ่าน LINE เพื่อแชร์');
+    } else {
+      alert('❌ แชร์ไม่สำเร็จ: ' + msg);
+    }
+  }).finally(function() {
     btn.disabled = false;
     btn.textContent = '📤 แชร์ใน LINE';
-  }
+  });
 }
 
 // ═══ INIT: โหลดข้อมูลตอนเปิดเพจ ═══
