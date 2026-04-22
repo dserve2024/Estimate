@@ -581,71 +581,135 @@ function shareOffer() {
   var dayColors = ['#E53935','#F9A825','#EC407A','#2E7D32','#EF6C00','#1565C0','#6A1B9A'];
   var dayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์'];
   var dayIdx = now.getDay();
-  var timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  var dateStr = now.getDate() + ' ' + THAI_MONTHS[now.getMonth()] + ' ' + (now.getFullYear() + 543);
 
   var bodyContents = [];
   var totalQty = 0, gt = 0;
 
-  active.forEach(function(item) {
+  // ── Column header ──
+  bodyContents.push({
+    type: 'box', layout: 'horizontal', backgroundColor: '#f8f9fa',
+    paddingTop: '8px', paddingBottom: '8px', paddingStart: '14px', paddingEnd: '14px',
+    contents: [
+      { type: 'text', text: 'สินค้า',  size: 'xxs', color: '#aaaaaa', weight: 'bold', flex: 5 },
+      { type: 'text', text: 'จำนวน', size: 'xxs', color: '#aaaaaa', weight: 'bold', align: 'center', flex: 2 },
+      { type: 'text', text: 'ราคา',   size: 'xxs', color: '#aaaaaa', weight: 'bold', align: 'end',   flex: 3 }
+    ]
+  });
+  bodyContents.push({ type: 'separator' });
+
+  // ── Items ──
+  active.forEach(function(item, idx) {
     totalQty += item.qty;
     gt += item.qty * item.price;
+    var p = parseProduct(item.name);
+    var sub = item.qty * item.price;
+
+    // Tags
+    var tagContents = [];
+    if (p.storage) {
+      tagContents.push({
+        type: 'box', layout: 'horizontal', backgroundColor: '#f0f0f0', cornerRadius: '5px',
+        paddingTop: '2px', paddingBottom: '2px', paddingStart: '6px', paddingEnd: '6px',
+        contents: [{ type: 'text', text: p.storage, size: 'xxs', color: '#555555', weight: 'bold' }]
+      });
+    }
+    if (p.colorName) {
+      var cm = (p.colorKey && COLOR_MAP[p.colorKey]) ? COLOR_MAP[p.colorKey] : { dot: '#cccccc', bg: '#f0f0f0', text: '#888888' };
+      tagContents.push({
+        type: 'box', layout: 'horizontal', spacing: 'xs', backgroundColor: cm.bg, cornerRadius: '5px',
+        paddingTop: '2px', paddingBottom: '2px', paddingStart: '5px', paddingEnd: '6px',
+        contents: [
+          { type: 'box', layout: 'vertical', width: '8px', height: '8px', backgroundColor: cm.dot, cornerRadius: '4px' },
+          { type: 'text', text: p.colorName, size: 'xxs', color: cm.text || '#555555' }
+        ]
+      });
+    }
+
+    var nameContents = [{ type: 'text', text: p.model || item.name, size: 'sm', weight: 'bold', color: '#222222', wrap: true }];
+    if (tagContents.length) {
+      nameContents.push({ type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: tagContents });
+    }
+
+    var priceContents = [{ type: 'text', text: '฿' + fmt(item.price), size: 'md', weight: 'bold', color: '#1DB446', align: 'end' }];
+    if (item.qty > 1) {
+      priceContents.push({ type: 'text', text: 'รวม ฿' + fmt(sub), size: 'xxs', color: '#aaaaaa', align: 'end', margin: 'xs' });
+    }
+
     bodyContents.push({
-      type: 'box', layout: 'horizontal', margin: 'md',
+      type: 'box', layout: 'horizontal',
+      paddingTop: '12px', paddingBottom: '12px', paddingStart: '14px', paddingEnd: '14px',
       contents: [
-        { type: 'text', text: item.name, size: 'sm', color: '#222222', flex: 5, wrap: true },
-        { type: 'text', text: 'x' + item.qty, size: 'sm', color: '#6c5ce7', align: 'center', flex: 1, weight: 'bold' },
-        { type: 'text', text: '฿' + fmt(item.price), size: 'sm', color: '#1DB446', align: 'end', flex: 3, weight: 'bold' }
+        { type: 'box', layout: 'vertical', flex: 5, contents: nameContents },
+        {
+          type: 'box', layout: 'vertical', flex: 2, justifyContent: 'center', alignItems: 'center',
+          contents: [{
+            type: 'box', layout: 'vertical', backgroundColor: '#6c5ce710', cornerRadius: '8px',
+            paddingTop: '4px', paddingBottom: '4px', paddingStart: '8px', paddingEnd: '8px',
+            contents: [{ type: 'text', text: String(item.qty), size: 'lg', weight: 'bold', color: '#6c5ce7', align: 'center' }]
+          }]
+        },
+        { type: 'box', layout: 'vertical', flex: 3, justifyContent: 'center', alignItems: 'flex-end', contents: priceContents }
       ]
     });
-    if (item.qty > 1) {
-      bodyContents.push({
-        type: 'text', text: '  รวม ฿' + fmt(item.qty * item.price),
-        size: 'xxs', color: '#aaaaaa', margin: 'xs'
-      });
+    if (idx < active.length - 1) {
+      bodyContents.push({ type: 'separator', color: '#f0f0f0' });
     }
   });
 
-  bodyContents.push({ type: 'separator', margin: 'lg' });
-
+  // ── Shipping ──
   if (shipping > 0) {
     gt += shipping;
+    bodyContents.push({ type: 'separator', color: '#e8d8a0' });
     bodyContents.push({
-      type: 'box', layout: 'horizontal', margin: 'md',
+      type: 'box', layout: 'horizontal', backgroundColor: '#fffdf5',
+      paddingTop: '10px', paddingBottom: '10px', paddingStart: '14px', paddingEnd: '14px',
       contents: [
         { type: 'text', text: '🚚 ค่าขนส่ง', size: 'sm', color: '#888888', flex: 5 },
-        { type: 'text', text: '฿' + fmt(shipping), size: 'sm', color: '#e6a817', align: 'end', flex: 3, weight: 'bold' }
+        { type: 'text', text: '฿' + fmt(shipping), size: 'sm', weight: 'bold', color: '#e6a817', align: 'end', flex: 3 }
       ]
     });
   }
 
+  // ── Total ──
+  bodyContents.push({ type: 'separator' });
   bodyContents.push({
-    type: 'box', layout: 'horizontal', margin: 'md',
+    type: 'box', layout: 'horizontal', backgroundColor: '#f8f9fa',
+    paddingTop: '14px', paddingBottom: '14px', paddingStart: '16px', paddingEnd: '16px',
     contents: [
-      { type: 'text', text: 'ยอดรวม', size: 'md', color: '#222222', flex: 5, weight: 'bold' },
-      { type: 'text', text: '฿' + fmt(gt), size: 'xl', color: '#1DB446', align: 'end', flex: 4, weight: 'bold' }
+      { type: 'text', text: 'รวม ' + totalQty + ' เครื่อง', size: 'sm', color: '#888888', flex: 5 },
+      {
+        type: 'box', layout: 'vertical', flex: 4, alignItems: 'flex-end',
+        contents: [
+          { type: 'text', text: 'ยอดรวมทั้งหมด', size: 'xxs', color: '#999999' },
+          { type: 'text', text: '฿' + fmt(gt), size: 'xxl', weight: 'bold', color: '#1DB446', align: 'end' }
+        ]
+      }
     ]
   });
 
   var flexContents = {
-    type: 'bubble', size: 'mega',
+    type: 'bubble', size: 'giga',
     header: {
       type: 'box', layout: 'horizontal', backgroundColor: dayColors[dayIdx], paddingAll: '14px',
       contents: [
-        { type: 'box', layout: 'vertical', flex: 1, contents: [
-          { type: 'text', text: '📋 ใบเสนอราคา', size: 'xl', weight: 'bold', color: '#ffffff' },
-          { type: 'text', text: 'วัน' + dayNames[dayIdx] + ' · ' + timeStr, size: 'xxs', color: '#ffffff99' }
-        ]},
-        { type: 'box', layout: 'vertical', flex: 0, contents: [
-          { type: 'text', text: String(totalQty), size: 'xxl', weight: 'bold', color: '#ffffff', align: 'end' },
-          { type: 'text', text: 'เครื่อง', size: 'xxs', color: '#ffffff99', align: 'end' }
-        ]}
+        {
+          type: 'box', layout: 'vertical', flex: 1,
+          contents: [
+            { type: 'text', text: 'DS•ONLINE', size: 'xxs', color: '#ffffff99' },
+            { type: 'text', text: 'ใบเสนอราคา', size: 'xl', weight: 'bold', color: '#ffffff' }
+          ]
+        },
+        {
+          type: 'box', layout: 'vertical', flex: 0, alignItems: 'flex-end',
+          contents: [
+            { type: 'text', text: 'วัน' + dayNames[dayIdx], size: 'sm', weight: 'bold', color: '#ffffff' },
+            { type: 'text', text: dateStr, size: 'xxs', color: '#ffffff99' }
+          ]
+        }
       ]
     },
-    body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: bodyContents },
-    footer: {
-      type: 'box', layout: 'vertical', paddingAll: '10px',
-      contents: [{ type: 'text', text: 'DS•ONLINE', size: 'xxs', color: '#bbbbbb', align: 'center' }]
-    }
+    body: { type: 'box', layout: 'vertical', paddingAll: '0px', spacing: 'none', contents: bodyContents }
   };
 
   var btn = document.getElementById('btnShareFlex');
