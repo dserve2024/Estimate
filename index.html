@@ -577,6 +577,7 @@ function shareOffer() {
 }
 function _shareOffer() {
   var active = getActiveItems();
+  alert('step1: active=' + active.length);
   if (!active.length) return;
 
   var shipping = getShipping();
@@ -715,10 +716,13 @@ function _shareOffer() {
     body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: bodyContents }
   };
 
+  alert('step2: gt=' + gt + ' totalQty=' + totalQty);
+
   var btn = document.getElementById('btnShareFlex');
   btn.disabled = true;
   btn.textContent = 'กำลังเปิด...';
 
+  alert('step3: calling shareTargetPicker');
   liff.shareTargetPicker(
     [{ type: 'flex', altText: '📋 ใบเสนอราคา ยอด ฿' + fmt(gt), contents: flexContents }],
     { isMultiple: true }
