@@ -632,7 +632,7 @@ function shareOffer() {
       type: 'box', layout: 'horizontal', backgroundColor: dayColors[dayIdx], paddingAll: '14px',
       contents: [
         { type: 'box', layout: 'vertical', flex: 1, contents: [
-          { type: 'text', text: '🔥 ขายแล้ว!', size: 'xl', weight: 'bold', color: '#ffffff' },
+          { type: 'text', text: '📋 ใบเสนอราคา', size: 'xl', weight: 'bold', color: '#ffffff' },
           { type: 'text', text: 'วัน' + dayNames[dayIdx] + ' · ' + timeStr, size: 'xxs', color: '#ffffff99' }
         ]},
         { type: 'box', layout: 'vertical', flex: 0, contents: [
@@ -644,7 +644,7 @@ function shareOffer() {
     body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: bodyContents },
     footer: {
       type: 'box', layout: 'vertical', paddingAll: '10px',
-      contents: [{ type: 'text', text: 'DS•ONLINE · บันทึกอัตโนมัติ', size: 'xxs', color: '#bbbbbb', align: 'center' }]
+      contents: [{ type: 'text', text: 'DS•ONLINE', size: 'xxs', color: '#bbbbbb', align: 'center' }]
     }
   };
 
@@ -653,7 +653,7 @@ function shareOffer() {
   btn.textContent = 'กำลังเปิด...';
 
   liff.shareTargetPicker(
-    [{ type: 'flex', altText: '🔥 ขายแล้ว! ยอด ฿' + fmt(gt), contents: flexContents }],
+    [{ type: 'flex', altText: '📋 ใบเสนอราคา ยอด ฿' + fmt(gt), contents: flexContents }],
     { isMultiple: true }
   ).then(function(res) {
     if (res) hideOffer();
