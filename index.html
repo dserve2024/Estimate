@@ -589,10 +589,22 @@ function shareOffer() {
   active.forEach(function(item) {
     totalQty += item.qty;
     gt += item.qty * item.price;
+    var p = parseProduct(item.name);
+
+    var nameContents = [
+      { type: 'text', text: '📱 ' + (p.model || item.name), size: 'sm', weight: 'bold', color: '#222222', wrap: true }
+    ];
+    var tags = [];
+    if (p.storage) tags.push('💾 ' + p.storage);
+    if (p.colorName) tags.push('🎨 ' + p.colorName);
+    if (tags.length) {
+      nameContents.push({ type: 'text', text: tags.join('  '), size: 'xxs', color: '#888888', margin: 'xs' });
+    }
+
     bodyContents.push({
       type: 'box', layout: 'horizontal', margin: 'md',
       contents: [
-        { type: 'text', text: '📱 ' + item.name, size: 'sm', color: '#222222', flex: 5, wrap: true },
+        { type: 'box', layout: 'vertical', flex: 5, contents: nameContents },
         { type: 'text', text: 'x' + item.qty, size: 'sm', color: '#6c5ce7', align: 'center', flex: 1, weight: 'bold' },
         { type: 'text', text: '฿' + fmt(item.price), size: 'sm', color: '#1DB446', align: 'end', flex: 3, weight: 'bold' }
       ]
