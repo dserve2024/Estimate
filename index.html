@@ -573,6 +573,9 @@ function closeWindow(){
 liff.init({ liffId: '2007885305-6twHMSNw' }).catch(function(e) { console.warn('LIFF init failed:', e); });
 
 function shareOffer() {
+  try { _shareOffer(); } catch(e) { alert('❌ ' + e.message); }
+}
+function _shareOffer() {
   var active = getActiveItems();
   if (!active.length) return;
 
