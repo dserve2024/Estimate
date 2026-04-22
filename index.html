@@ -592,7 +592,7 @@ function shareOffer() {
     bodyContents.push({
       type: 'box', layout: 'horizontal', margin: 'md',
       contents: [
-        { type: 'text', text: item.name, size: 'sm', color: '#222222', flex: 5, wrap: true },
+        { type: 'text', text: '📱 ' + item.name, size: 'sm', color: '#222222', flex: 5, wrap: true },
         { type: 'text', text: 'x' + item.qty, size: 'sm', color: '#6c5ce7', align: 'center', flex: 1, weight: 'bold' },
         { type: 'text', text: '฿' + fmt(item.price), size: 'sm', color: '#1DB446', align: 'end', flex: 3, weight: 'bold' }
       ]
@@ -621,7 +621,7 @@ function shareOffer() {
   bodyContents.push({
     type: 'box', layout: 'horizontal', margin: 'md',
     contents: [
-      { type: 'text', text: 'ยอดรวม', size: 'md', color: '#222222', flex: 5, weight: 'bold' },
+      { type: 'text', text: '💰 ยอดรวม', size: 'md', color: '#222222', flex: 5, weight: 'bold' },
       { type: 'text', text: '฿' + fmt(gt), size: 'xl', color: '#1DB446', align: 'end', flex: 4, weight: 'bold' }
     ]
   });
@@ -644,7 +644,7 @@ function shareOffer() {
     body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: bodyContents },
     footer: {
       type: 'box', layout: 'vertical', paddingAll: '10px',
-      contents: [{ type: 'text', text: 'DS•ONLINE', size: 'xxs', color: '#bbbbbb', align: 'center' }]
+      contents: [{ type: 'text', text: '✨ DS•ONLINE · ใบเสนอราคา', size: 'xxs', color: '#bbbbbb', align: 'center' }]
     }
   };
 
