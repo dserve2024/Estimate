@@ -592,7 +592,7 @@ function shareOffer() {
     var p = parseProduct(item.name);
 
     var nameContents = [
-      { type: 'text', text: '📱 ' + (p.model || item.name), size: 'sm', weight: 'bold', color: '#222222', wrap: true }
+      { type: 'text', text: p.model || item.name, size: 'sm', weight: 'bold', color: '#222222', wrap: true }
     ];
     var tags = [];
     if (p.storage) tags.push('💾 ' + p.storage);
